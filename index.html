@@ -112,7 +112,7 @@ input[type="file"]{display:none;}
   <div class="moon-big" aria-hidden="true">🌙</div>
   <div class="brand">🌙 LunaNote ✨ <small>体調ノート ♡</small></div>
 </header>
-<div class="proto-banner">試作版 v17 です ― 便秘の日は😇だけ出ます ♡</div>
+<div class="proto-banner">試作版 v18 です ― 😇の日は😇だけにしました ♡</div>
 <nav class="tabs" id="tabbar">
   <button data-tab="record" class="active">✏️ 記録</button>
   <button data-tab="calendar">📅 カレンダー</button>
@@ -359,7 +359,7 @@ input[type="file"]{display:none;}
     </div>
     <div class="card">
       <h3>ℹ️ このアプリについて</h3>
-      <p class="hint">LunaNote 試作版 v17。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
+      <p class="hint">LunaNote 試作版 v18。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
     </div>
   </section>
 </main>
@@ -975,7 +975,7 @@ function renderCalendar(){
     var marks = '';
     if(fl) marks += '<span>💧×'+fl+'</span>';
     if(pn) marks += (marks?' ':'') + '<span class="cp">⚡×'+pn+'</span>';
-    if(pc) marks += (marks?' ':'') + '<span>💩' + (pc>1 ? '×'+pc : '') + '</span>';
+    if(pc && !bp) marks += (marks?' ':'') + '<span>💩' + (pc>1 ? '×'+pc : '') + '</span>';
     if(bp) marks += (marks?' ':'') + '<span>😇</span>';
     var cls = 'day' + (dimFlag?' dim':'') + (ds===todayStr()?' today':'') + (ds===ui.calSel?' sel':'') + (per?' period':'');
     cells.push('<div class="'+cls+'" data-day="'+ds+'"><div>'+ (+ds.split('-')[2]) +'</div>'
