@@ -112,7 +112,7 @@ input[type="file"]{display:none;}
   <div class="moon-big" aria-hidden="true">🌙</div>
   <div class="brand">🌙 LunaNote ✨ <small>体調ノート ♡</small></div>
 </header>
-<div class="proto-banner">試作版 v15 です ― カレンダーにお通じが出ます ♡</div>
+<div class="proto-banner">試作版 v17 です ― 便秘の日は😇だけ出ます ♡</div>
 <nav class="tabs" id="tabbar">
   <button data-tab="record" class="active">✏️ 記録</button>
   <button data-tab="calendar">📅 カレンダー</button>
@@ -268,7 +268,7 @@ input[type="file"]{display:none;}
       </div>
       <div class="cal-grid" id="calGrid"></div>
       <div class="hint" id="calPeriodInfo" style="margin-top:6px;"></div>
-      <div class="hint" style="margin-top:4px;">🌸＝生理期間　始・終＝開始/終了日　💧×n＝量の段階（1 少ない〜4 とても多い）　⚡×n＝生理痛の段階（1 痛くない〜4 酷い）　💩＝お通じ（×nは回数）　・＝記録あり。日をタップすると下にその日の記録が出ます。</div>
+      <div class="hint" style="margin-top:4px;">🌸＝生理期間　始・終＝開始/終了日　💧×n＝量の段階（1 少ない〜4 とても多い）　⚡×n＝生理痛の段階（1 痛くない〜4 酷い）　💩＝お通じ（×nは回数）　😇＝便秘　・＝記録あり。日をタップすると下にその日の記録が出ます。</div>
     </div>
     <div class="card">
       <h3 id="calDayTitle">選んだ日の記録</h3>
@@ -359,7 +359,7 @@ input[type="file"]{display:none;}
     </div>
     <div class="card">
       <h3>ℹ️ このアプリについて</h3>
-      <p class="hint">LunaNote 試作版 v15。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
+      <p class="hint">LunaNote 試作版 v17。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
     </div>
   </section>
 </main>
@@ -967,15 +967,16 @@ function renderCalendar(){
     var per = isPeriodDay(ds, info);
     var isStart = info.spans.some(function(s){ return s.start===ds; });
     var isEnd = info.spans.some(function(s){ return s.end===ds; });
-    var fl = null, pn = null, pc = 0;
+    var fl = null, pn = null, pc = 0, bp = false;
     state.records.forEach(function(r){
       if(r.type==='period' && r.date===ds){ if(r.phase==='flow') fl = r.amount; if(r.phase==='pain') pn = r.level; }
-      else if(r.type==='poop' && r.date===ds) pc++;
+      else if(r.type==='poop' && r.date===ds){ if(r.amount==='benpi') bp = true; else pc++; }
     });
     var marks = '';
     if(fl) marks += '<span>💧×'+fl+'</span>';
     if(pn) marks += (marks?' ':'') + '<span class="cp">⚡×'+pn+'</span>';
     if(pc) marks += (marks?' ':'') + '<span>💩' + (pc>1 ? '×'+pc : '') + '</span>';
+    if(bp) marks += (marks?' ':'') + '<span>😇</span>';
     var cls = 'day' + (dimFlag?' dim':'') + (ds===todayStr()?' today':'') + (ds===ui.calSel?' sel':'') + (per?' period':'');
     cells.push('<div class="'+cls+'" data-day="'+ds+'"><div>'+ (+ds.split('-')[2]) +'</div>'
       + (per ? '<div class="pmark">🌸</div>' : '')
