@@ -112,7 +112,7 @@ input[type="file"]{display:none;}
   <div class="moon-big" aria-hidden="true">🌙</div>
   <div class="brand">🌙 LunaNote ✨ <small>体調ノート ♡</small></div>
 </header>
-<div class="proto-banner">試作版 v19 です ― グラフがタップで読めます ♡</div>
+<div class="proto-banner">試作版 v20 です ― 履歴はタップで開閉します ♡</div>
 <nav class="tabs" id="tabbar">
   <button data-tab="record" class="active">✏️ 記録</button>
   <button data-tab="calendar">📅 カレンダー</button>
@@ -293,7 +293,7 @@ input[type="file"]{display:none;}
       <div class="legend"><span>🌅朝は● 🌙夜は■ で点の形を区別</span></div>
       <div class="g-sum" id="wSum"></div>
       <div id="wChart"></div>
-      <div class="hint">グラフをタップすると、その場所の体重が出ます</div>
+      <div class="hint">グラフをタップすると、その場所の体重が出て、履歴の表示も切り替わります</div>
       <div id="wHist" style="margin-top:8px;"></div>
     </div>
     <div class="card">
@@ -301,12 +301,14 @@ input[type="file"]{display:none;}
       <div class="legend"><span><b style="color:var(--bp-sys);">―</b> 上</span><span><b style="color:var(--bp-dia);">―</b> 下</span><span>🌅朝 🌙夜 は点の形で区別</span></div>
       <div class="g-sum" id="bpSum"></div>
       <div id="bpChart"></div>
+      <div class="hint">グラフをタップすると履歴の表示が切り替わります</div>
       <div id="bpHist" style="margin-top:8px;"></div>
     </div>
     <div class="card">
       <div class="g-title">🌡️ 体温（℃）</div>
       <div class="g-sum" id="tSum"></div>
       <div id="tChart"></div>
+      <div class="hint">グラフをタップすると履歴の表示が切り替わります</div>
       <div id="tHist" style="margin-top:8px;"></div>
     </div>
   </section>
@@ -363,7 +365,7 @@ input[type="file"]{display:none;}
     </div>
     <div class="card">
       <h3>ℹ️ このアプリについて</h3>
-      <p class="hint">LunaNote 試作版 v19。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
+      <p class="hint">LunaNote 試作版 v20。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
     </div>
   </section>
 </main>
@@ -579,7 +581,7 @@ var LunaCore = {
   addRecord: addRecord, getRecord: getRecord, updateRecord: updateRecord, deleteRecord: deleteRecord,
   byDate: byDate, ofType: ofType, onDate: onDate,
   periodInfo: periodInfo, isPeriodDay: isPeriodDay,
-  buildChart: buildChart, selectWeightAt: selectWeightAt,
+  buildChart: buildChart, selectWeightAt: selectWeightAt, toggleGraphHist: toggleGraphHist,
   dateStr: dateStr, todayStr: todayStr, parseDate: parseDate, addDays: addDays, diffDays: diffDays, esc: esc
 };
 if(typeof window!=='undefined') window.LunaCore = LunaCore;
@@ -600,7 +602,8 @@ var ui = {
   calSel: todayStr(),
   gDays: 90,
   histFilter: 'all',
-  wSelId: null
+  wSelId: null,
+  histOpen: { weight:false, bp:false, temp:false }
 };
 (function initCal(){ var d=new Date(); ui.calCursor = {y:d.getFullYear(), m:d.getMonth()}; })();
 
@@ -1030,6 +1033,10 @@ function avgText(vals, dec, unit){
   return ' ・ 平均 '+a.toFixed(dec)+unit;
 }
 var wChartPts = [];
+function toggleGraphHist(kind){
+  ui.histOpen[kind] = !ui.histOpen[kind];
+  renderGraphs();
+}
 function selectWeightAt(frac){
   if(!wChartPts.length) return null;
   var best = 0, bd = Infinity;
@@ -1057,7 +1064,7 @@ function renderGraphs(){
     wDiff = '\n初回 '+wf.kg+' kg（'+fmtDate(wf.date)+'）→ 最新 '+wl.kg+' kg（'+fmtDate(wl.date)+'） ・ 差 '+(wd>0?'+':'')+wd.toFixed(1)+' kg';
   }
   $('wSum').textContent = wLine1 + wDiff;
-  $('wHist').innerHTML = ws.length ? ws.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  $('wHist').innerHTML = (ui.histOpen.weight && ws.length) ? ws.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
   bindRecActions($('wHist'));
   var bps = inRange(byDate(ofType('bp')));
   $('bpChart').innerHTML = buildChart([
@@ -1065,12 +1072,12 @@ function renderGraphs(){
     {color:'#5b8dd9', points: bps.map(function(r){ return {date:r.date, v:r.dia, shape: r.when==='evening'?'square':'circle'}; })}
   ], {pad:8, decimals:0});
   $('bpSum').textContent = bps.length ? '最新 '+(bps[bps.length-1].when==='evening'?'🌙夜':'🌅朝')+(bps[bps.length-1].time?' '+bps[bps.length-1].time:'')+' ・ '+bps[bps.length-1].sys+'/'+bps[bps.length-1].dia+avgText(bps.map(function(r){return r.sys;}),0,'')+' / '+avgText(bps.map(function(r){return r.dia;}),0,'').replace(' ・ 平均 ','') : 'まだデータがありません';
-  $('bpHist').innerHTML = bps.length ? bps.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  $('bpHist').innerHTML = (ui.histOpen.bp && bps.length) ? bps.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
   bindRecActions($('bpHist'));
   var ts = inRange(byDate(ofType('temp')));
   $('tChart').innerHTML = buildChart([{color:'#e89b4e', points: ts.map(function(r){ return {date:r.date, v:r.c}; })}], {pad:0.4, decimals:1, refLine:{v:37.0, label:'37.0'}});
   $('tSum').textContent = ts.length ? '最新 '+ts[ts.length-1].c+'℃（'+fmtDate(ts[ts.length-1].date)+' '+ (ts[ts.length-1].time||'') +'）'+avgText(ts.map(function(r){return r.c;}),1,'℃') : 'まだデータがありません';
-  $('tHist').innerHTML = ts.length ? ts.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  $('tHist').innerHTML = (ui.histOpen.temp && ts.length) ? ts.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
   bindRecActions($('tHist'));
 }
 
@@ -1278,9 +1285,12 @@ function init(){
   $('calGoRecord').addEventListener('click', function(){ ui.date = ui.calSel; $('recDate').value = ui.date; $('pDate').value = ui.date; setCalCursor(ui.date); clearAllEditing(); switchTab('record'); });
   $('wChart').addEventListener('click', function(ev){
     var rect = this.getBoundingClientRect ? this.getBoundingClientRect() : null;
-    if(!rect || !rect.width || !ev || ev.clientX==null) return;
-    selectWeightAt((ev.clientX - rect.left) / rect.width);
+    if(!rect || !rect.width || !ev || ev.clientX==null){ toggleGraphHist('weight'); return; }
+    ui.histOpen.weight = !ui.histOpen.weight;
+    if(wChartPts.length) selectWeightAt((ev.clientX - rect.left) / rect.width); else renderGraphs();
   });
+  $('bpChart').addEventListener('click', function(){ toggleGraphHist('bp'); });
+  $('tChart').addEventListener('click', function(){ toggleGraphHist('temp'); });
   var gr = $('gRange').querySelectorAll('button');
   for(var g=0;g<gr.length;g++) gr[g].addEventListener('click', function(){
     ui.gDays = +this.getAttribute('data-days');
