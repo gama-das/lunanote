@@ -95,6 +95,7 @@ button.btn.small{padding:6px 10px; font-size:12px; border-radius:8px;}
 /* graphs */
 .g-title{font-weight:700; margin:2px 0 2px;}
 .g-sum{font-size:12px; color:var(--sub); margin-bottom:6px; white-space:pre-line;}
+.ghist{max-height:240px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain; margin-top:8px;}
 svg.chart{width:100%; height:auto; display:block;}
 .legend{font-size:12px; color:var(--sub); display:flex; gap:12px;}
 .legend b{font-weight:600;}
@@ -112,7 +113,7 @@ input[type="file"]{display:none;}
   <div class="moon-big" aria-hidden="true">🌙</div>
   <div class="brand">🌙 LunaNote ✨ <small>体調ノート ♡</small></div>
 </header>
-<div class="proto-banner">試作版 v20 です ― 履歴はタップで開閉します ♡</div>
+<div class="proto-banner">試作版 v21 です ― 履歴がスクロールできます ♡</div>
 <nav class="tabs" id="tabbar">
   <button data-tab="record" class="active">✏️ 記録</button>
   <button data-tab="calendar">📅 カレンダー</button>
@@ -294,7 +295,7 @@ input[type="file"]{display:none;}
       <div class="g-sum" id="wSum"></div>
       <div id="wChart"></div>
       <div class="hint">グラフをタップすると、その場所の体重が出て、履歴の表示も切り替わります</div>
-      <div id="wHist" style="margin-top:8px;"></div>
+      <div id="wHist" class="ghist"></div>
     </div>
     <div class="card">
       <div class="g-title">💓 血圧（mmHg）</div>
@@ -302,14 +303,14 @@ input[type="file"]{display:none;}
       <div class="g-sum" id="bpSum"></div>
       <div id="bpChart"></div>
       <div class="hint">グラフをタップすると履歴の表示が切り替わります</div>
-      <div id="bpHist" style="margin-top:8px;"></div>
+      <div id="bpHist" class="ghist"></div>
     </div>
     <div class="card">
       <div class="g-title">🌡️ 体温（℃）</div>
       <div class="g-sum" id="tSum"></div>
       <div id="tChart"></div>
       <div class="hint">グラフをタップすると履歴の表示が切り替わります</div>
-      <div id="tHist" style="margin-top:8px;"></div>
+      <div id="tHist" class="ghist"></div>
     </div>
   </section>
 
@@ -365,7 +366,7 @@ input[type="file"]{display:none;}
     </div>
     <div class="card">
       <h3>ℹ️ このアプリについて</h3>
-      <p class="hint">LunaNote 試作版 v20。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
+      <p class="hint">LunaNote 試作版 v21。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
     </div>
   </section>
 </main>
