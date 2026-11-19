@@ -94,7 +94,7 @@ button.btn.small{padding:6px 10px; font-size:12px; border-radius:8px;}
 .cal-grid .day .pmark{position:absolute; right:3px; top:2px; font-size:9px; color:var(--pink);}
 /* graphs */
 .g-title{font-weight:700; margin:2px 0 2px;}
-.g-sum{font-size:12px; color:var(--sub); margin-bottom:6px;}
+.g-sum{font-size:12px; color:var(--sub); margin-bottom:6px; white-space:pre-line;}
 svg.chart{width:100%; height:auto; display:block;}
 .legend{font-size:12px; color:var(--sub); display:flex; gap:12px;}
 .legend b{font-weight:600;}
@@ -112,7 +112,7 @@ input[type="file"]{display:none;}
   <div class="moon-big" aria-hidden="true">🌙</div>
   <div class="brand">🌙 LunaNote ✨ <small>体調ノート ♡</small></div>
 </header>
-<div class="proto-banner">試作版 v18 です ― 😇の日は😇だけにしました ♡</div>
+<div class="proto-banner">試作版 v19 です ― グラフがタップで読めます ♡</div>
 <nav class="tabs" id="tabbar">
   <button data-tab="record" class="active">✏️ 記録</button>
   <button data-tab="calendar">📅 カレンダー</button>
@@ -293,17 +293,21 @@ input[type="file"]{display:none;}
       <div class="legend"><span>🌅朝は● 🌙夜は■ で点の形を区別</span></div>
       <div class="g-sum" id="wSum"></div>
       <div id="wChart"></div>
+      <div class="hint">グラフをタップすると、その場所の体重が出ます</div>
+      <div id="wHist" style="margin-top:8px;"></div>
     </div>
     <div class="card">
       <div class="g-title">💓 血圧（mmHg）</div>
       <div class="legend"><span><b style="color:var(--bp-sys);">―</b> 上</span><span><b style="color:var(--bp-dia);">―</b> 下</span><span>🌅朝 🌙夜 は点の形で区別</span></div>
       <div class="g-sum" id="bpSum"></div>
       <div id="bpChart"></div>
+      <div id="bpHist" style="margin-top:8px;"></div>
     </div>
     <div class="card">
       <div class="g-title">🌡️ 体温（℃）</div>
       <div class="g-sum" id="tSum"></div>
       <div id="tChart"></div>
+      <div id="tHist" style="margin-top:8px;"></div>
     </div>
   </section>
 
@@ -359,7 +363,7 @@ input[type="file"]{display:none;}
     </div>
     <div class="card">
       <h3>ℹ️ このアプリについて</h3>
-      <p class="hint">LunaNote 試作版 v18。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
+      <p class="hint">LunaNote 試作版 v19。記録データは端末のブラウザ（localStorage）にのみ保存され、サーバーには送られません。</p>
     </div>
   </section>
 </main>
@@ -553,6 +557,14 @@ function buildChart(seriesList, opts){
       else out.push('<circle cx="'+cx+'" cy="'+cy+'" r="3" fill="'+s.color+'"/>');
     });
   });
+  if(opts.sel){
+    var sx = X(opts.sel.date), sy = Y(opts.sel.v);
+    var anchor = sx > W-70 ? 'end' : (sx < PL+34 ? 'start' : 'middle');
+    var lx = anchor==='end' ? sx-6 : (anchor==='start' ? sx+6 : sx);
+    var ly = sy > PT+26 ? sy-9 : sy+17;
+    out.push('<circle cx="'+sx.toFixed(1)+'" cy="'+sy.toFixed(1)+'" r="5" fill="none" stroke="#e75480" stroke-width="2"/>');
+    out.push('<text class="wsel" x="'+lx.toFixed(1)+'" y="'+ly.toFixed(1)+'" font-size="11" font-weight="bold" fill="#e75480" text-anchor="'+anchor+'">'+esc(opts.sel.label)+'</text>');
+  }
   out.push('</svg>');
   return out.join('');
 }
@@ -567,7 +579,7 @@ var LunaCore = {
   addRecord: addRecord, getRecord: getRecord, updateRecord: updateRecord, deleteRecord: deleteRecord,
   byDate: byDate, ofType: ofType, onDate: onDate,
   periodInfo: periodInfo, isPeriodDay: isPeriodDay,
-  buildChart: buildChart,
+  buildChart: buildChart, selectWeightAt: selectWeightAt,
   dateStr: dateStr, todayStr: todayStr, parseDate: parseDate, addDays: addDays, diffDays: diffDays, esc: esc
 };
 if(typeof window!=='undefined') window.LunaCore = LunaCore;
@@ -587,7 +599,8 @@ var ui = {
   calCursor: null, /* {y, m} */
   calSel: todayStr(),
   gDays: 90,
-  histFilter: 'all'
+  histFilter: 'all',
+  wSelId: null
 };
 (function initCal(){ var d=new Date(); ui.calCursor = {y:d.getFullYear(), m:d.getMonth()}; })();
 
@@ -1016,19 +1029,49 @@ function avgText(vals, dec, unit){
   var a = vals.reduce(function(x,y){return x+y;},0)/vals.length;
   return ' ・ 平均 '+a.toFixed(dec)+unit;
 }
+var wChartPts = [];
+function selectWeightAt(frac){
+  if(!wChartPts.length) return null;
+  var best = 0, bd = Infinity;
+  for(var i=0;i<wChartPts.length;i++){ var d = Math.abs(wChartPts[i].fx - frac); if(d<bd){ bd=d; best=i; } }
+  ui.wSelId = wChartPts[best].id;
+  renderGraphs();
+  return ui.wSelId;
+}
 function renderGraphs(){
   var ws = inRange(byDate(ofType('weight')));
-  $('wChart').innerHTML = buildChart([{color:'#9a86e0', points: ws.map(function(r){ return {date:r.date, v:r.kg, shape: r.when==='evening'?'square':'circle'}; })}], {pad:1, decimals:0});
-  $('wSum').textContent = ws.length ? '最新 '+(ws[ws.length-1].when==='evening'?'🌙夜 ':ws[ws.length-1].when==='morning'?'🌅朝 ':'')+ws[ws.length-1].kg+' kg（'+fmtDate(ws[ws.length-1].date)+(ws[ws.length-1].time?' '+ws[ws.length-1].time:'')+'）'+avgText(ws.map(function(r){return r.kg;}),1,' kg') : 'まだデータがありません';
+  var minD = ws.length ? ws[0].date : null, maxD = ws.length ? ws[ws.length-1].date : null;
+  var spanD = ws.length ? Math.max(diffDays(minD, maxD), 1) : 1;
+  wChartPts = ws.map(function(r){ return { id:r.id, fx:(38 + diffDays(minD, r.date)/spanD*292)/340 }; });
+  var selRec = null;
+  if(ui.wSelId){ for(var si=0; si<ws.length; si++) if(ws[si].id===ui.wSelId) selRec = ws[si]; }
+  var wOpts = {pad:1, decimals:0};
+  if(selRec) wOpts.sel = { date:selRec.date, v:selRec.kg, label: fmtDate(selRec.date)+' '+selRec.kg+'kg' };
+  $('wChart').innerHTML = buildChart([{color:'#9a86e0', points: ws.map(function(r){ return {date:r.date, v:r.kg, shape: r.when==='evening'?'square':'circle'}; })}], wOpts);
+  var wLine1 = ws.length ? '最新 '+(ws[ws.length-1].when==='evening'?'🌙夜 ':ws[ws.length-1].when==='morning'?'🌅朝 ':'')+ws[ws.length-1].kg+' kg（'+fmtDate(ws[ws.length-1].date)+(ws[ws.length-1].time?' '+ws[ws.length-1].time:'')+'）'+avgText(ws.map(function(r){return r.kg;}),1,' kg') : 'まだデータがありません';
+  var wall = byDate(ofType('weight'));
+  var wDiff = '';
+  if(wall.length>=2){
+    var wf = wall[0], wl = wall[wall.length-1];
+    var wd = Math.round((wl.kg - wf.kg)*10)/10;
+    wDiff = '\n初回 '+wf.kg+' kg（'+fmtDate(wf.date)+'）→ 最新 '+wl.kg+' kg（'+fmtDate(wl.date)+'） ・ 差 '+(wd>0?'+':'')+wd.toFixed(1)+' kg';
+  }
+  $('wSum').textContent = wLine1 + wDiff;
+  $('wHist').innerHTML = ws.length ? ws.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  bindRecActions($('wHist'));
   var bps = inRange(byDate(ofType('bp')));
   $('bpChart').innerHTML = buildChart([
     {color:'#e0655f', points: bps.map(function(r){ return {date:r.date, v:r.sys, shape: r.when==='evening'?'square':'circle'}; })},
     {color:'#5b8dd9', points: bps.map(function(r){ return {date:r.date, v:r.dia, shape: r.when==='evening'?'square':'circle'}; })}
   ], {pad:8, decimals:0});
   $('bpSum').textContent = bps.length ? '最新 '+(bps[bps.length-1].when==='evening'?'🌙夜':'🌅朝')+(bps[bps.length-1].time?' '+bps[bps.length-1].time:'')+' ・ '+bps[bps.length-1].sys+'/'+bps[bps.length-1].dia+avgText(bps.map(function(r){return r.sys;}),0,'')+' / '+avgText(bps.map(function(r){return r.dia;}),0,'').replace(' ・ 平均 ','') : 'まだデータがありません';
+  $('bpHist').innerHTML = bps.length ? bps.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  bindRecActions($('bpHist'));
   var ts = inRange(byDate(ofType('temp')));
   $('tChart').innerHTML = buildChart([{color:'#e89b4e', points: ts.map(function(r){ return {date:r.date, v:r.c}; })}], {pad:0.4, decimals:1, refLine:{v:37.0, label:'37.0'}});
   $('tSum').textContent = ts.length ? '最新 '+ts[ts.length-1].c+'℃（'+fmtDate(ts[ts.length-1].date)+' '+ (ts[ts.length-1].time||'') +'）'+avgText(ts.map(function(r){return r.c;}),1,'℃') : 'まだデータがありません';
+  $('tHist').innerHTML = ts.length ? ts.slice().reverse().map(function(r){ return recRow(r,true); }).join('') : '';
+  bindRecActions($('tHist'));
 }
 
 /* ----- 履歴 ----- */
@@ -1233,6 +1276,11 @@ function init(){
   $('calPrev').addEventListener('click', function(){ ui.calCursor.m--; if(ui.calCursor.m<0){ ui.calCursor.m=11; ui.calCursor.y--; } renderCalendar(); });
   $('calNext').addEventListener('click', function(){ ui.calCursor.m++; if(ui.calCursor.m>11){ ui.calCursor.m=0; ui.calCursor.y++; } renderCalendar(); });
   $('calGoRecord').addEventListener('click', function(){ ui.date = ui.calSel; $('recDate').value = ui.date; $('pDate').value = ui.date; setCalCursor(ui.date); clearAllEditing(); switchTab('record'); });
+  $('wChart').addEventListener('click', function(ev){
+    var rect = this.getBoundingClientRect ? this.getBoundingClientRect() : null;
+    if(!rect || !rect.width || !ev || ev.clientX==null) return;
+    selectWeightAt((ev.clientX - rect.left) / rect.width);
+  });
   var gr = $('gRange').querySelectorAll('button');
   for(var g=0;g<gr.length;g++) gr[g].addEventListener('click', function(){
     ui.gDays = +this.getAttribute('data-days');
